@@ -16,16 +16,16 @@ export default function HarmonySelector() {
   const { harmonyMode, setHarmonyMode } = usePaletteStore();
 
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap gap-1.5">
       {MODES.map(({ value, label, description }) => (
         <button
           key={value}
           onClick={() => setHarmonyMode(value)}
           title={description}
-          className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all duration-200 ${
+          className={`px-3 py-1.5 rounded-lg text-[10px] font-black transition-all border whitespace-nowrap ${
             harmonyMode === value
-              ? "bg-white text-black shadow-sm scale-105"
-              : "bg-white/8 text-white/50 hover:bg-white/15 hover:text-white/80 border border-white/10"
+              ? "bg-white text-black border-white shadow-lg scale-[1.03]"
+              : "border-white/10 text-white/40 hover:text-white/70 hover:border-white/20 bg-white/5"
           }`}
         >
           {label}

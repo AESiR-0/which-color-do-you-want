@@ -9,12 +9,14 @@ import {
   type HSL,
   type ColorRole,
 } from "@/lib/color-engine";
+import { TASTE_IDENTITIES, getRandomIdentity, type DesignIdentity } from "@/lib/taste-engine";
 
 export type PreviewMode = "light-ui" | "dark-ui" | "dashboard" | "landing";
 
 export interface HistoryEntry {
   id: string;
   palette: PaletteColor[];
+  identity: DesignIdentity;
   timestamp: number;
 }
 
@@ -22,6 +24,7 @@ interface PaletteState {
   palette: PaletteColor[];
   harmonyMode: HarmonyMode;
   previewMode: PreviewMode;
+  identity: DesignIdentity;
   history: HistoryEntry[];
   selectedRole: ColorRole | null;
 
@@ -29,6 +32,7 @@ interface PaletteState {
   generate: () => void;
   setHarmonyMode: (mode: HarmonyMode) => void;
   setPreviewMode: (mode: PreviewMode) => void;
+  setIdentity: (identity: DesignIdentity) => void;
   toggleLock: (role: ColorRole) => void;
   setLockMode: (role: ColorRole, lockMode: PaletteColor["lockMode"]) => void;
   updateColorHex: (role: ColorRole, hex: string) => void;
@@ -37,36 +41,45 @@ interface PaletteState {
   setSelectedRole: (role: ColorRole | null) => void;
 }
 
-function makeHistoryEntry(palette: PaletteColor[]): HistoryEntry {
+function makeHistoryEntry(palette: PaletteColor[], identity: DesignIdentity): HistoryEntry {
   return {
     id: Math.random().toString(36).slice(2),
     palette: JSON.parse(JSON.stringify(palette)),
+    identity,
     timestamp: Date.now(),
   };
 }
 
+const initialIdentity = TASTE_IDENTITIES["brutalist-saas"];
+
 export const usePaletteStore = create<PaletteState>((set, get) => ({
   palette: generatePalette("analogous"),
   harmonyMode: "analogous",
-  previewMode: "light-ui",
+  previewMode: "landing",
+  identity: initialIdentity,
   history: [],
   selectedRole: null,
 
   generate() {
-    const { palette, harmonyMode, history } = get();
+    const { palette, harmonyMode, history, identity: currentIdentity } = get();
     const newPalette = generatePalette(harmonyMode, palette);
-    const entry = makeHistoryEntry(palette);
+    const entry = makeHistoryEntry(palette, currentIdentity);
+    
+    // Sometimes change identity on full generate if not locked
+    const newIdentity = getRandomIdentity();
+
     set({
       palette: newPalette,
+      identity: newIdentity,
       history: [entry, ...history].slice(0, 20),
     });
   },
 
   setHarmonyMode(mode) {
     set({ harmonyMode: mode });
-    const { palette, history } = get();
+    const { palette, history, identity } = get();
     const newPalette = generatePalette(mode, palette);
-    const entry = makeHistoryEntry(palette);
+    const entry = makeHistoryEntry(palette, identity);
     set({
       palette: newPalette,
       history: [entry, ...history].slice(0, 20),
@@ -75,6 +88,10 @@ export const usePaletteStore = create<PaletteState>((set, get) => ({
 
   setPreviewMode(mode) {
     set({ previewMode: mode });
+  },
+
+  setIdentity(identity) {
+    set({ identity });
   },
 
   toggleLock(role) {
@@ -113,12 +130,13 @@ export const usePaletteStore = create<PaletteState>((set, get) => ({
   },
 
   restoreHistory(id) {
-    const { history, palette } = get();
+    const { history, palette, identity } = get();
     const entry = history.find((h) => h.id === id);
     if (!entry) return;
-    const current = makeHistoryEntry(palette);
+    const current = makeHistoryEntry(palette, identity);
     set({
       palette: entry.palette,
+      identity: entry.identity,
       history: [current, ...history.filter((h) => h.id !== id)].slice(0, 20),
     });
   },
