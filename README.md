@@ -3,7 +3,7 @@
 A premium, interaction-first color palette generator built with Next.js.
 
 ## Features
-
+ 
 - **Harmony modes** — Analogous, Complementary, Triadic, Split-Complementary, Tetradic, Monochromatic
 - **6 color roles** — Primary, Secondary, Accent, Background, Surface, Text
 - **Advanced locking** — Lock full color, or lock just Hue / Saturation / Lightness
