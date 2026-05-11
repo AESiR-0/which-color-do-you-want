@@ -1,109 +1,155 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useState, useRef, type ReactNode } from "react";
 import { useLayoutStore, type PanelId, type DockZone } from "@/store/layout";
 
 interface Props {
   id: PanelId;
   children: ReactNode;
+  onDragStart?: (id: PanelId) => void;
+  onDragEnd?: () => void;
+  onReorderDrop?: (draggedId: PanelId, targetId: PanelId) => void;
+  isDragging?: boolean;
+  isAnyDragging?: boolean;
 }
 
-const ZONE_OPTIONS: { value: DockZone; label: string }[] = [
-  { value: "left", label: "← Left" },
-  { value: "right", label: "→ Right" },
-  { value: "top", label: "↑ Top" },
-  { value: "bottom", label: "↓ Bottom" },
-];
-
-export default function Panel({ id, children }: Props) {
-  const { panels, togglePanel, movePanel, reorderPanel } = useLayoutStore();
+export default function Panel({
+  id,
+  children,
+  onDragStart,
+  onDragEnd,
+  onReorderDrop,
+  isDragging,
+  isAnyDragging,
+}: Props) {
+  const { panels, togglePanel } = useLayoutStore();
   const panel = panels.find((p) => p.id === id);
-  const [showMenu, setShowMenu] = useState(false);
+  const [dropAbove, setDropAbove] = useState(false);
+  const [dropBelow, setDropBelow] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
 
   if (!panel) return null;
 
-  const zoneItems = panels.filter((p) => p.zone === panel.zone).sort((a, b) => a.order - b.order);
-  const idx = zoneItems.findIndex((p) => p.id === id);
-  const canMoveUp = idx > 0;
-  const canMoveDown = idx < zoneItems.length - 1;
+  const handleDragStart = (e: React.DragEvent) => {
+    e.dataTransfer.setData("panel-id", id);
+    e.dataTransfer.effectAllowed = "move";
+    // Set a small drag image
+    const el = ref.current;
+    if (el) {
+      const ghost = el.cloneNode(true) as HTMLElement;
+      ghost.style.width = "200px";
+      ghost.style.opacity = "0.8";
+      ghost.style.position = "absolute";
+      ghost.style.top = "-1000px";
+      document.body.appendChild(ghost);
+      e.dataTransfer.setDragImage(ghost, 100, 15);
+      setTimeout(() => ghost.remove(), 0);
+    }
+    onDragStart?.(id);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    if (!isAnyDragging || isDragging) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    const rect = ref.current?.getBoundingClientRect();
+    if (rect) {
+      const midY = rect.top + rect.height / 2;
+      if (e.clientY < midY) {
+        setDropAbove(true);
+        setDropBelow(false);
+      } else {
+        setDropAbove(false);
+        setDropBelow(true);
+      }
+    }
+  };
+
+  const handleDragLeave = () => {
+    setDropAbove(false);
+    setDropBelow(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDropAbove(false);
+    setDropBelow(false);
+    const draggedId = e.dataTransfer.getData("panel-id") as PanelId;
+    if (draggedId && draggedId !== id) {
+      onReorderDrop?.(draggedId, id);
+    }
+  };
 
   return (
-    <div className="border-b border-white/5 last:border-0">
-      {/* Header */}
-      <div
-        className="flex items-center gap-1 px-3 py-2 cursor-pointer select-none hover:bg-white/3 transition-colors group"
-        onClick={() => togglePanel(id)}
-      >
-        <svg
-          className={`w-2.5 h-2.5 text-white/25 transition-transform flex-shrink-0 ${
-            panel.collapsed ? "" : "rotate-90"
-          }`}
-          viewBox="0 0 8 8"
-          fill="currentColor"
-        >
-          <path d="M2 1l4 3-4 3z" />
-        </svg>
-        <span className="text-[9px] text-white/40 font-black uppercase tracking-[0.18em] flex-1 truncate">
-          {panel.label}
-        </span>
-
-        {/* Context menu trigger */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            setShowMenu(!showMenu);
-          }}
-          className="opacity-0 group-hover:opacity-100 text-white/20 hover:text-white/50 transition-all p-0.5"
-        >
-          <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor">
-            <circle cx="8" cy="3" r="1.5" />
-            <circle cx="8" cy="8" r="1.5" />
-            <circle cx="8" cy="13" r="1.5" />
-          </svg>
-        </button>
-      </div>
-
-      {/* Context menu */}
-      {showMenu && (
-        <div
-          className="mx-2 mb-2 bg-zinc-800 border border-white/10 rounded-lg shadow-xl overflow-hidden"
-          onMouseLeave={() => setShowMenu(false)}
-        >
-          {canMoveUp && (
-            <button
-              onClick={() => { reorderPanel(id, "up"); setShowMenu(false); }}
-              className="w-full text-left px-3 py-1.5 text-[10px] text-white/50 hover:bg-white/5 hover:text-white/80"
-            >
-              ↑ Move Up
-            </button>
-          )}
-          {canMoveDown && (
-            <button
-              onClick={() => { reorderPanel(id, "down"); setShowMenu(false); }}
-              className="w-full text-left px-3 py-1.5 text-[10px] text-white/50 hover:bg-white/5 hover:text-white/80"
-            >
-              ↓ Move Down
-            </button>
-          )}
-          <div className="border-t border-white/5 my-0.5" />
-          <p className="px-3 py-1 text-[8px] text-white/20 uppercase tracking-widest">Move to</p>
-          {ZONE_OPTIONS.filter((z) => z.value !== panel.zone).map((z) => (
-            <button
-              key={z.value}
-              onClick={() => { movePanel(id, z.value); setShowMenu(false); }}
-              className="w-full text-left px-3 py-1.5 text-[10px] text-white/50 hover:bg-white/5 hover:text-white/80"
-            >
-              {z.label}
-            </button>
-          ))}
-        </div>
+    <div
+      ref={ref}
+      className={`border-b border-white/5 last:border-0 transition-all duration-150 ${
+        isDragging ? "opacity-30 scale-[0.98]" : ""
+      }`}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      {/* Drop indicator above */}
+      {dropAbove && (
+        <div className="h-[2px] bg-white/40 mx-2 rounded-full" />
       )}
+
+      {/* Header */}
+      <div className="flex items-center gap-1 px-1 py-2 select-none group">
+        {/* Drag handle */}
+        <div
+          draggable
+          onDragStart={handleDragStart}
+          onDragEnd={() => {
+            setDropAbove(false);
+            setDropBelow(false);
+            onDragEnd?.();
+          }}
+          className="flex-shrink-0 cursor-grab active:cursor-grabbing p-1 rounded hover:bg-white/5 transition-colors"
+          title="Drag to reorder or move to another zone"
+        >
+          <svg width="8" height="12" viewBox="0 0 8 12" className="text-white/15 group-hover:text-white/35 transition-colors">
+            <circle cx="2" cy="2" r="1" fill="currentColor" />
+            <circle cx="6" cy="2" r="1" fill="currentColor" />
+            <circle cx="2" cy="6" r="1" fill="currentColor" />
+            <circle cx="6" cy="6" r="1" fill="currentColor" />
+            <circle cx="2" cy="10" r="1" fill="currentColor" />
+            <circle cx="6" cy="10" r="1" fill="currentColor" />
+          </svg>
+        </div>
+
+        {/* Collapse toggle + label */}
+        <div
+          className="flex items-center gap-1 flex-1 cursor-pointer hover:bg-white/3 rounded px-1 py-0.5 transition-colors"
+          onClick={() => togglePanel(id)}
+        >
+          <svg
+            className={`w-2.5 h-2.5 text-white/25 transition-transform flex-shrink-0 ${
+              panel.collapsed ? "" : "rotate-90"
+            }`}
+            viewBox="0 0 8 8"
+            fill="currentColor"
+          >
+            <path d="M2 1l4 3-4 3z" />
+          </svg>
+          <span className="text-[9px] text-white/40 font-black uppercase tracking-[0.18em] flex-1 truncate">
+            {panel.label}
+          </span>
+        </div>
+      </div>
 
       {/* Content */}
       {!panel.collapsed && (
         <div className="px-3 pb-3 pt-0.5">
           {children}
         </div>
+      )}
+
+      {/* Drop indicator below */}
+      {dropBelow && (
+        <div className="h-[2px] bg-white/40 mx-2 rounded-full" />
       )}
     </div>
   );

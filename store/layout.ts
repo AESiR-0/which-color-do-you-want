@@ -17,8 +17,6 @@ export interface PanelConfig {
   zone: DockZone;
   collapsed: boolean;
   order: number;
-  width?: number;  // for left/right panels
-  height?: number; // for top/bottom panels
 }
 
 interface LayoutState {
@@ -35,7 +33,7 @@ interface LayoutState {
   toggleZone: (zone: DockZone) => void;
   togglePanel: (id: PanelId) => void;
   movePanel: (id: PanelId, zone: DockZone) => void;
-  reorderPanel: (id: PanelId, direction: "up" | "down") => void;
+  reorderPanel: (id: PanelId, targetOrder: number | "up" | "down") => void;
   setZoneSize: (zone: DockZone, size: number) => void;
   resetLayout: () => void;
 }
@@ -45,12 +43,12 @@ const DEFAULT_PANELS: PanelConfig[] = [
   { id: "taste-harmony", label: "Taste & Harmony", zone: "left", collapsed: false, order: 1 },
   { id: "contrast", label: "Contrast (WCAG)", zone: "left", collapsed: false, order: 2 },
   { id: "fonts", label: "Font Pairing", zone: "right", collapsed: false, order: 0 },
-  { id: "mockups", label: "Mockup Previews", zone: "right", collapsed: false, order: 1 },
+  { id: "mockups", label: "Branding Mockups", zone: "right", collapsed: false, order: 1 },
   { id: "ai-input", label: "AI / HTML Input", zone: "right", collapsed: false, order: 2 },
   { id: "export", label: "Export", zone: "bottom", collapsed: false, order: 0 },
 ];
 
-const STORAGE_KEY = "wcydyw-layout-v2";
+const STORAGE_KEY = "wcydyw-layout-v3";
 
 function loadState(): Partial<LayoutState> | null {
   if (typeof window === "undefined") return null;
@@ -110,27 +108,61 @@ export const useLayoutStore = create<LayoutState>((set, get) => ({
       const panels = s.panels.map((p) =>
         p.id === id ? { ...p, zone, order: maxOrder + 1 } : p
       );
+      // Normalize orders in old zone
+      const oldPanel = s.panels.find((p) => p.id === id);
+      if (oldPanel) {
+        const oldZoneItems = panels
+          .filter((p) => p.zone === oldPanel.zone && p.id !== id)
+          .sort((a, b) => a.order - b.order);
+        oldZoneItems.forEach((item, i) => {
+          const idx = panels.findIndex((p) => p.id === item.id);
+          if (idx >= 0) panels[idx] = { ...panels[idx], order: i };
+        });
+      }
       const next = { ...s, panels };
       saveState(next as any);
       return next;
     });
   },
 
-  reorderPanel(id, direction) {
+  reorderPanel(id, targetOrder) {
     set((s) => {
       const panel = s.panels.find((p) => p.id === id);
       if (!panel) return s;
-      const zoneItems = s.panels.filter((p) => p.zone === panel.zone).sort((a, b) => a.order - b.order);
-      const idx = zoneItems.findIndex((p) => p.id === id);
-      const swapIdx = direction === "up" ? idx - 1 : idx + 1;
-      if (swapIdx < 0 || swapIdx >= zoneItems.length) return s;
 
-      const swapPanel = zoneItems[swapIdx];
+      if (targetOrder === "up" || targetOrder === "down") {
+        // Legacy support
+        const zoneItems = s.panels.filter((p) => p.zone === panel.zone).sort((a, b) => a.order - b.order);
+        const idx = zoneItems.findIndex((p) => p.id === id);
+        const swapIdx = targetOrder === "up" ? idx - 1 : idx + 1;
+        if (swapIdx < 0 || swapIdx >= zoneItems.length) return s;
+        const swapPanel = zoneItems[swapIdx];
+        const panels = s.panels.map((p) => {
+          if (p.id === id) return { ...p, order: swapPanel.order };
+          if (p.id === swapPanel.id) return { ...p, order: panel.order };
+          return p;
+        });
+        const next = { ...s, panels };
+        saveState(next as any);
+        return next;
+      }
+
+      // Reorder to specific position within zone
+      const zoneItems = s.panels
+        .filter((p) => p.zone === panel.zone && p.id !== id)
+        .sort((a, b) => a.order - b.order);
+
+      // Insert at target position
+      const clampedTarget = Math.max(0, Math.min(targetOrder, zoneItems.length));
+      zoneItems.splice(clampedTarget, 0, panel);
+
+      // Reassign orders
       const panels = s.panels.map((p) => {
-        if (p.id === id) return { ...p, order: swapPanel.order };
-        if (p.id === swapPanel.id) return { ...p, order: panel.order };
+        const zIdx = zoneItems.findIndex((z) => z.id === p.id);
+        if (zIdx >= 0) return { ...p, order: zIdx };
         return p;
       });
+
       const next = { ...s, panels };
       saveState(next as any);
       return next;
@@ -159,7 +191,8 @@ export const useLayoutStore = create<LayoutState>((set, get) => ({
       bottomCollapsed: false,
     };
     if (typeof window !== "undefined") {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem("wcydyw-layout-v2");
     }
     set(next);
   },

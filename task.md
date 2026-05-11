@@ -1,52 +1,34 @@
-# which-color-do-you-want — Major Upgrade
+# Task: Draggable layout + Branding mockups + 2-step AI
 
-## Features to Add
+## 1. Draggable Panels (DnD)
+- Use HTML5 drag-and-drop API (no extra deps)
+- Panels get drag handles (grip icon)
+- Can drag panels between left/right/top/bottom zones
+- Can reorder within a zone by dragging
+- Drop zones highlight on dragover
+- Persist new positions to localStorage
 
-### 1. AI Prompt + HTML/JSX Input
-- Text prompt → AI generates HTML preview (via Groq API, model: openai/gpt-oss-120b)
-- User pastes HTML/JSX → renders with palette colors applied
-- Tailwind CSS support in pasted/generated HTML
-- API route at /api/generate for Groq calls
+## 2. Branding Mockups (toggleable sidebar)
+Replace device-frame mockups with branding mockups:
+- Logo on white/dark backgrounds (circle + wordmark)
+- T-shirt mockup (SVG outline + palette fill)
+- Mug mockup (SVG)
+- Hoodie mockup (SVG)
+- Business card mockup (front/back)
+- Tote bag mockup (SVG)
+All rendered as pure SVG/CSS using palette colors. Toggleable sidebar.
 
-### 2. Mockup Previews Sidebar
-- Device frames: phone, tablet, laptop showing the active preview
-- Thumbnail cards of all preview modes side-by-side
-- Lives in a collapsible sidebar panel
+## 3. 2-Step AI Prompt Optimization
+- Step 1: Send user prompt to Groq → "optimize this prompt for generating HTML UI"
+- Step 2: Use optimized prompt to generate the actual HTML
+- Show both prompts (original + optimized) so user can edit
+- Same model for both steps
 
-### 3. Font Selector — Gooey Combobox with 100s of fonts
-- Replace current 8-option button list with searchable combobox
-- Load Google Fonts catalog (popular subset ~200+)
-- Preview font in the dropdown itself
-
-### 4. Customizable Layout (VS Code / Premiere Pro style)
-- Collapsible panels at fixed positions: left, right, top, bottom, center
-- Default layout:
-  - LEFT sidebar (collapsible): Color Palette + Taste/Harmony
-  - RIGHT sidebar (collapsible): Font Selector + Mockup Previews
-  - BOTTOM/TOP bar (collapsible): Export buttons
-  - CENTER: Live Preview (main area)
-- Panels can be reordered within their dock zone
-- State persisted via localStorage
-
-### 5. Layout state persistence
-- All panel positions, collapsed states, sizes → localStorage
-- Restore on page load
-
-## Tech
-- Groq API: https://api.groq.com/openai/v1, model: openai/gpt-oss-120b
-- API key stored in .env.local
-- Next.js API route for server-side Groq calls
-- Tailwind CDN in iframe for user HTML rendering
-
-## File Plan
-- `.env.local` — GROQ_API_KEY
-- `app/api/generate/route.ts` — Groq API proxy
-- `store/layout.ts` — Layout/panel state store with localStorage persistence
-- `components/layout/DockableLayout.tsx` — Main layout shell
-- `components/layout/Panel.tsx` — Collapsible panel wrapper
-- `components/ai/PromptInput.tsx` — AI prompt + HTML paste input
-- `components/ai/HtmlPreview.tsx` — Renders HTML in sandboxed iframe with palette
-- `components/preview/MockupSidebar.tsx` — Device frames + thumbnails
-- `components/ui/FontCombobox.tsx` — Searchable font selector with 200+ fonts
-- Update `app/page.tsx` — New layout
-- Update `store/palette.ts` — Add AI-generated preview state
+## Files to modify:
+- `components/layout/DockableLayout.tsx` — add drop zones
+- `components/layout/Panel.tsx` — add drag handle + draggable
+- `store/layout.ts` — update movePanel for DnD
+- `components/preview/MockupSidebar.tsx` — complete rewrite with branding mockups
+- `components/ai/PromptInput.tsx` — 2-step flow
+- `app/api/generate/route.ts` — add optimize endpoint or merge
+- `app/page.tsx` — minor updates
