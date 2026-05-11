@@ -26,51 +26,48 @@ export default function ExportPanel() {
   };
 
   return (
-    <div className="bg-white/5 border border-white/10 rounded-2xl p-5 shadow-2xl">
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h3 className="font-bold text-white text-sm">Direct Export</h3>
-          <p className="text-[10px] text-white/30 uppercase tracking-widest font-bold">Skip hours of design decisions</p>
+    <div className="flex gap-3 h-full min-h-0">
+      {/* Left: Format tabs + buttons */}
+      <div className="flex flex-col gap-2 w-[160px] flex-shrink-0">
+        <div className="flex flex-col gap-0.5 bg-white/5 rounded-lg p-1 border border-white/5">
+          {FORMATS.map(({ value, label }) => (
+            <button
+              key={value}
+              onClick={() => setFormat(value)}
+              className={`text-[9px] py-1.5 px-3 rounded-md transition-all font-black uppercase tracking-widest text-left ${
+                format === value ? "bg-white text-black shadow" : "text-white/30 hover:text-white/60"
+              }`}
+            >
+              {label}
+              {value === "prompt" && (
+                <span className="ml-1.5 inline-block w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
+              )}
+            </button>
+          ))}
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-col gap-1">
           <button
             onClick={copy}
-            className="text-xs px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-white font-bold transition-all border border-white/10"
+            className="text-[10px] px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-white font-bold transition-all border border-white/10"
           >
             {copied ? "Copied!" : "Copy Code"}
           </button>
           <button
             onClick={() => downloadPalette(palette, format, identity)}
-            className="text-xs px-4 py-2 rounded-lg bg-white text-black font-black hover:bg-white/90 transition-all shadow-lg"
+            className="text-[10px] px-3 py-2 rounded-lg bg-white text-black font-black hover:bg-white/90 transition-all shadow-lg"
           >
             Download
           </button>
         </div>
       </div>
 
-      {/* Format tabs */}
-      <div className="flex gap-1 mb-4 bg-white/5 rounded-xl p-1 border border-white/5 overflow-x-auto no-scrollbar">
-        {FORMATS.map(({ value, label }) => (
-          <button
-            key={value}
-            onClick={() => setFormat(value)}
-            className={`flex-1 whitespace-nowrap text-[10px] py-2 px-4 rounded-lg transition-all font-black uppercase tracking-widest ${
-              format === value ? "bg-white text-black shadow" : "text-white/30 hover:text-white/60"
-            }`}
-          >
-            {label}
-            {value === "prompt" && <span className="ml-1.5 inline-block w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />}
-          </button>
-        ))}
-      </div>
-
-      {/* Code preview */}
-      <div className="relative group">
-        <pre className="text-[11px] text-white/50 bg-black/40 rounded-xl p-5 overflow-x-auto font-mono leading-relaxed max-h-64 overflow-y-auto border border-white/5 custom-scrollbar">
+      {/* Right: Code preview */}
+      <div className="flex-1 relative min-w-0">
+        <pre className="text-[10px] text-white/50 bg-black/40 rounded-xl p-4 overflow-auto font-mono leading-relaxed h-full border border-white/5 custom-scrollbar">
           {preview}
         </pre>
         {format === "prompt" && (
-          <div className="absolute top-4 right-4 text-[9px] font-bold text-indigo-400 uppercase tracking-widest bg-indigo-500/10 px-2 py-1 rounded-md border border-indigo-500/20">
+          <div className="absolute top-3 right-3 text-[8px] font-bold text-indigo-400 uppercase tracking-widest bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">
             AI Ready
           </div>
         )}

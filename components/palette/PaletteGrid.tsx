@@ -5,7 +5,7 @@ import ColorCard from "./ColorCard";
 export default function PaletteGrid() {
   const { palette } = usePaletteStore();
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 w-full">
+    <div className="grid grid-cols-2 gap-2 w-full">
       {palette.map((color) => (
         <ColorCard key={color.role} color={color} />
       ))}
