@@ -51,6 +51,9 @@ export default function TipiLoader({ onDone }: Props) {
     setChosenColor(color);
     setPhase("chosen");
     setColorFlash(color.bg);
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem("tipi-loader-seen", "true");
+    }
     const bursts = Array.from({ length: 20 }, () => ({
       id: emojiId.current++,
       emoji: randomEmoji(),
@@ -78,6 +81,21 @@ export default function TipiLoader({ onDone }: Props) {
         transition: "background 0.45s cubic-bezier(0.4,0,0.2,1)",
       }}
     >
+      {/* ── Skip Intro Button ── */}
+      {(phase === "chant" || phase === "pick") && (
+        <button
+          onClick={() => {
+            if (typeof window !== "undefined") {
+              sessionStorage.setItem("tipi-loader-seen", "true");
+            }
+            setPhase("done");
+            setTimeout(onDone, 150);
+          }}
+          className="absolute top-6 right-6 z-50 px-3.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white/40 hover:text-white/80 text-[9px] uppercase font-bold tracking-widest transition-all active:scale-95 cursor-pointer"
+        >
+          Skip Intro
+        </button>
+      )}
       {/* ── Ambient colour orbs ── */}
       {!colorFlash && orbs.map((orb, i) => (
         <div key={i} className="absolute rounded-full pointer-events-none"

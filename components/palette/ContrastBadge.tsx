@@ -11,21 +11,25 @@ const LEVEL_STYLE: Record<string, { text: string; bg: string; bar: string }> = {
 
 export default function ContrastBadge() {
   const { palette } = usePaletteStore();
-  const primary = palette.find((c) => c.role === "primary");
-  const bg      = palette.find((c) => c.role === "background");
-  const text    = palette.find((c) => c.role === "text");
-  const surface = palette.find((c) => c.role === "surface");
+  const primary   = palette.find((c) => c.role === "primary");
+  const secondary = palette.find((c) => c.role === "secondary");
+  const accent    = palette.find((c) => c.role === "accent");
+  const bg        = palette.find((c) => c.role === "background");
+  const text      = palette.find((c) => c.role === "text");
+  const surface   = palette.find((c) => c.role === "surface");
   if (!primary || !bg || !text) return null;
 
   const pairs = [
     { label: "Text/BG",      ratio: contrastRatio(text.hsl, bg.hsl) },
     { label: "Primary/BG",   ratio: contrastRatio(primary.hsl, bg.hsl) },
+    { label: "Secondary/BG", ratio: secondary ? contrastRatio(secondary.hsl, bg.hsl) : 0 },
+    { label: "Accent/BG",    ratio: accent ? contrastRatio(accent.hsl, bg.hsl) : 0 },
     { label: "Text/Surface", ratio: surface ? contrastRatio(text.hsl, surface.hsl) : 0 },
     { label: "Primary/Text", ratio: contrastRatio(primary.hsl, text.hsl) },
   ].filter(p => p.ratio > 0);
 
   return (
-    <div className="grid grid-cols-2 gap-2">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
       {pairs.map(({ label, ratio }) => {
         const level = wcagLevel(ratio);
         const styles = LEVEL_STYLE[level];

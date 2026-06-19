@@ -1,16 +1,28 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { usePaletteStore } from "@/store/palette";
 
 export default function HistoryDrawer() {
   const { history, restoreHistory } = usePaletteStore();
   const [open, setOpen] = useState(false);
+  const drawerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (drawerRef.current && !drawerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, [open]);
 
   if (history.length === 0) return null;
 
   return (
-    <div className="relative">
+    <div className="relative" ref={drawerRef}>
       <button
         onClick={() => setOpen(!open)}
         className="text-xs px-3 py-1.5 rounded-xl bg-white/8 border border-white/10 text-white/50 hover:text-white/80 hover:bg-white/15 transition-all"

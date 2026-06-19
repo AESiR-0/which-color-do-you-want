@@ -23,6 +23,15 @@ export default function Home() {
   const { resetLayout } = useLayoutStore();
   const [loading, setLoading] = useState(true);
 
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const seen = sessionStorage.getItem("tipi-loader-seen");
+      if (seen === "true") {
+        setLoading(false);
+      }
+    }
+  }, []);
+
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
